@@ -57,6 +57,7 @@ teclaNavision.RAPPO_ID='listaRigheOdT';
 teclaNavision.rappo=(function($,_window){
 	//-----------------   private methods   -----------------
 	var _R,
+		_running=false,
 		_tableRappo,	//jQuery variable of rapportini DOM table
 		_data,	/*array of "rapportini" records retrieved from server
 					ex:
@@ -369,6 +370,38 @@ teclaNavision.rappo=(function($,_window){
 			return "";
 		},
 
+		//SHOW A MESSAGE
+		_displayMessage=function(text,removeAfterMilliseconds){
+			/*Input parameters:
+				text						= text to be showed
+				removeAfterMilliseconds		= [optional] number of milliseconds after which the message is removed
+			Return value:	
+			*/
+			$('#teclaNavisionConfiguration')
+			.prepend(
+				$('<div/>',{
+					'id':'teclaNavision_tempMessage'
+				})
+				.css({
+					'display':				'none',
+					'margin-bottom':		'50px',
+					'background':			'#d7dfeb',
+					'border-radius':		'16px',
+					'padding':				'5px 10px',
+					'color': 				'#d22020',
+					'font-size':			'30px',
+					'text-align':			'center'
+				})
+				.html(text)
+			)
+			$('#teclaNavision_tempMessage').show('slow');
+			setTimeout(function(){
+				$('#teclaNavision_tempMessage').hide('slow',function(){
+					$('#teclaNavision_tempMessage').remove();
+				});
+			},removeAfterMilliseconds || 2000);
+		},
+
 		//
 		_xxxxx2=function(xxx){
 			/*Input parameters:
@@ -377,7 +410,6 @@ teclaNavision.rappo=(function($,_window){
 			*/
 /*TODO
 */
-
 		};
 
 
@@ -429,7 +461,7 @@ teclaNavision.rappo=(function($,_window){
 						'color': 				'#d22020',
 						'font-size':			'12px'
 					})
-				,messageContainer=$('<div/>')
+				,messageContainer=$('<div/>',{'id':'teclaNavisionConfiguration'})
 					.css({
 						'position':				'absolute',
 						'-moz-transition':		'all 2s ease-out 0s',
@@ -447,6 +479,32 @@ teclaNavision.rappo=(function($,_window){
 				.append(options)
 				.append(message.html('Tecla plugin enabled'))
 			);
+			//new button "Estrai dettagli" near "Visualizza consuntivi mensili"
+			leftContainer.find('#menu2')
+			.after(
+				$('<div/>',{id:'teclaNavisionExtractDetails_container','style':'text-align: right;margin: 0 0 10px;display:none'})
+				.append(
+					$('<a/>',{
+							'id':'teclaNavisionExtractDetails',
+							'onclick':'teclaNavision.rappo.reportHoursApproved()',
+							'style':'position: relative;'
+									+'background: #e3a1a1;'
+									+'border-radius: 16px;'
+									+'padding: 3px 10px;'
+					})
+					.html('Estrai dettagli')
+					.prepend($('<div/>',{'style':'position: absolute;'
+												+'top: -2px;'
+												+'left: -32px;'
+												+'border-left: 1px solid #d32424;'
+												+'border-bottom: 1px solid #d32424;'
+												+'width: 30px;'
+												+'height: 15px;'
+												+'empty-cells: show;'
+										}))
+				)
+			);
+			$('#teclaNavisionExtractDetails_container').slideDown('slow');
 			//"version" highlight effect: START
 			message=$('#teclaNavisionMessage');
 			messageContainer=message.parent('div');
@@ -518,6 +576,176 @@ teclaNavision.rappo=(function($,_window){
 			}),365);
 		},
 		
+		//EXTRACT DETAILS DATA FROM VIEW "Visualizza consuntivi mensili"
+		reportHoursApproved:function(){
+			var days=$('#MainPanel .header-center img[src$="check.png"]');
+				daysWithApprovedHours=[],
+				getDayApprovedHours=function(pos){	//RETRIEVE APPROVED HOURS
+					/*Input parameters:
+						pos	= "daysWithApprovedHours" array index position to be filled with data extracted
+					*/
+					var jsonResult=daysWithApprovedHours[pos],
+						day=jsonResult.day, //day to be extracted; ex: "01/07/2022"
+						conlcudi=function(){
+							var RESULT_ID='teclaNavision_approvedHours',
+								container,
+								styleBorder,
+								table,
+								el,d;
+							//we need to get data for other days
+							if (daysWithApprovedHours.length>pos+1){
+								getDayApprovedHours(pos+1);	//get data for the next day
+							//completed requested information
+							}else{
+							
+								//OUTPUT
+								container=$('#'+RESULT_ID);
+								if (container.length){
+									container.empty();
+								}else{
+									container=$('<div/>',{'id':RESULT_ID,'style':'width: 95%;margin-top: 20px;margin-left: auto;margin-right: auto;'})
+												.appendTo('#MainPanel');
+									container
+									.append(
+										$('<div/>',{'style':'font-size: 1.5em;font-weight: bold;text-align: center;color: #000;'})
+										.html('Dati estratti')
+									);
+								}
+								
+								//JSON data
+								container
+								.append(
+									$('<div/>',{'style':'font-weight: bold;'})
+									.html('JSON dati estratti<br/>')
+									.append(
+										$('<textarea/>').html(JSON.stringify(daysWithApprovedHours))
+									)
+								);
+								//days data details
+								table=$('<table/>',{'style':'margin-top: 20px;'})
+										.append(
+											'<tr>'
+												+'<th>Data</th>'
+												+'<th>Commessa</th>'
+												+'<th>Desc.Commessa</th>'
+												+'<th>Fase</th>'
+												+'<th>Ore</th>'
+												+'<th>Straordinario</th>'
+												+'<th>Note</th>'
+											+'</tr>'
+										);
+								//for every day
+								for (var i=0;i<daysWithApprovedHours.length;i++){
+									el=daysWithApprovedHours[i];
+									if (el.error){
+										table.append(
+											'<tr>'
+												+'<td>'+el.day+'</td>'
+												+'<td style="color:red">ERROR</td>'
+												+'<td></td>'
+												+'<td></td>'
+												+'<td></td>'
+												+'<td></td>'
+												+'<td>'+el.error+'</td>'
+											+'</tr>'
+										);
+									}else{
+										d=el.data || [];
+										//for every "rapportino"
+										for (var k=0;k<d.length;k++){
+											styleBorder='border:1px solid;'
+														+(k===d.length-1 ? 'border-bottom:4px solid;' : '');
+											table.append(
+												'<tr>'
+													+'<td style="'+styleBorder+'">'+el.day+'</td>'
+													+'<td style="'+styleBorder+'">'+d[k].Commessa+'</td>'
+													+'<td style="'+styleBorder+'white-space: nowrap;">'+d[k].Descrizione+'</td>'
+													+'<td style="'+styleBorder+'">'+d[k].Fase+'</td>'
+													+'<td style="'+styleBorder+'text-align: center;">'+d[k].OreOrdinarie+'</td>'
+													+'<td style="'+styleBorder+'text-align: center;">'+d[k].OreStraordinarie+'</td>'
+													+'<td style="'+styleBorder+'">'+(d[k].Note || '')+'</td>'
+												+'</tr>'
+											);
+										}
+									}
+								}
+								container.append(table);
+								_displayMessage('Estrazione completata');
+								_running=false;
+							}
+						};
+					
+					//replicate the call used by navision function "displayOreApprovate('01/07/2022')"
+					$.ajax({
+						type:	'POST',
+						url:	'https://navisionweb.lutech.it/Consuntivo/GetOreApprovate',
+						contentType:'application/x-www-form-urlencoded;charset=UTF-8',
+						data:{
+							'day': day,
+							'numRecordIniziale':'1',
+							'pageSize':'-1',
+							'bookmarkKey':'',
+							'bookmarkKeyAll':'',
+							'username':$('#username').val()	//ex: 'andrea.samorini'
+						},
+						success:function(data){	//ex:	{"TotalRecors":"4","FirstRecordDisplayed":"1","LastRecordDisplayed":"4","HasPreviousPage":"false","HasNextPage":"false","CurrentPage":"1","Oggetti":[{"Risorsa":"3317","Data":"04/07/2022 00:00:00","Commessa":"N220563","Fase":"001","Descrizione":"ELESA: DM + AM/CR","Key":"12;qQAAAACHin9u10;55780817730;","OreOrdinarie":"0,5","OreStraordinarie":"0","OreReperibilita":"0","OreAssenze":"0","BancaOre":"0","OreTrasferta":"0","OreReqAvailability":"0","AttivaBancaOre":"False","AttivaOreTrasferta":"False","AttivaOreReqAvailability":"False","Note":"ELESADM-501 Pagine SKU: Valutazione SEO Indexing e Valutazione Google Shopping"},{"Risorsa":"3317","Data":"04/07/2022 00:00:00","Commessa":"N220563","Fase":"001","Descrizione":"ELESA: DM + AM/CR","Key":"12;qQAAAACHi39u10;55780817740;","OreOrdinarie":"2","OreStraordinarie":"0","OreReperibilita":"0","OreAssenze":"0","BancaOre":"0","OreTrasferta":"0","OreReqAvailability":"0","AttivaBancaOre":"False","AttivaOreTrasferta":"False","AttivaOreReqAvailability":"False","Note":"ELESA: allineamento situazione progetto, deploy, issue prioritarie, mail"},{"Risorsa":"3317","Data":"04/07/2022 00:00:00","Commessa":"N220563","Fase":"001","Descrizione":"ELESA: DM + AM/CR","Key":"12;qQAAAACHjH9u10;55780817750;","OreOrdinarie":"1,25","OreStraordinarie":"0","OreReperibilita":"0","OreAssenze":"0","BancaOre":"0","OreTrasferta":"0","OreReqAvailability":"0","AttivaBancaOre":"False","AttivaOreTrasferta":"False","AttivaOreReqAvailability":"False","Note":"ELESAB2B-1002 eComm_PDP: layout tabella Quotation-only per store non ecommerce"},{"Risorsa":"3317","Data":"04/07/2022 00:00:00","Commessa":"N220563","Fase":"001","Descrizione":"ELESA: DM + AM/CR","Key":"12;qQAAAACHjX9u10;55780817760;","OreOrdinarie":"4,25","OreStraordinarie":"0","OreReperibilita":"0","OreAssenze":"0","BancaOre":"0","OreTrasferta":"0","OreReqAvailability":"0","AttivaBancaOre":"False","AttivaOreTrasferta":"False","AttivaOreReqAvailability":"False","Note":"ELESAB2B-1087 eComm_PDP: Integrazione sviluppo NewPDP con gli altri sviluppi fatti nel frattempo (Recapcha, Svizzera, ...)"}]}
+							try{
+								data=JSON.parse(data);
+							}catch(e){
+								console.error('getDayApprovedHours: Error parsing data from server',data);
+								jsonResult.error='Error parsing data from server<br><br>'+JSON.stringify(data);
+								return conlcudi();
+							}
+							//save data
+							jsonResult.data=data['Oggetti'] || [];	//save array with rows rapportini
+							return conlcudi();
+						},error:function(data){
+							console.error('getDayApprovedHours: Error from server<br><br>'+data.statusText,data);
+							jsonResult.error='Error from server '+data.statusText;
+							return conlcudi();
+						}
+					});
+				};
+			
+			if (_running){return;}
+			_running=true;
+			//check to be on the right page (this condition could be better)
+			if ($('#dLegenda').length
+			&& $('#dGriglia').length
+			&& days.length
+			){
+
+				//for every day of this month
+				days.each(function(index){
+					var dayLink=$(this).parent(),				//ex: <a onclick="displayOreApprovate('01/07/2022');" href="#">
+						day;
+
+					if (dayLink.attr('onclick'))
+					day=dayLink.attr('onclick') || '';
+					if (day){
+						day=day.split("'");	//ex: ["displayOreApprovate(","01/07/2022",");"]
+						day=day[1] || '';	//ex: "01/07/2022"
+						if (day){
+							daysWithApprovedHours.push({
+								day:day
+							});
+						}
+					}
+				});
+				if (daysWithApprovedHours.length){
+					getDayApprovedHours(0);	//get data for the first day
+				}else{
+					_displayMessage('Non ci sono giorni con ore approvate');
+					_running=false;
+				}
+			}else{
+				_displayMessage('Pagina non riconosciuta per l\'estrazione,<br>oppure non ci sono giorni approvati');
+				_running=false;
+			}
+		},
+		
+		
+		
 		//
 		xxx:function(name){
 			/*Input parameters
@@ -528,30 +756,3 @@ teclaNavision.rappo=(function($,_window){
 		}
 	};
 })(jQuery,window);
-
-
-/*OLD VERSION
-var label = $("#listaRigheOdT_situazionePaging");
-var LOADINGTXT = " (LOADING)";
-//there is only one page of rows
-if ($('#listaRigheOdT_btnPrev').is(':disabled')
-   && $('#listaRigheOdT_btnNext').is(':disabled')){
-	teclaNavisionRappo.showTotalHours();
-	
-//there are many pages of rows (so we retrieve all)
-}else{
-	label.append(LOADINGTXT);
-	//set new total rows number per page
-	listaRigheOdT.p.rowNum= 120;
-	//refresh
-	qJqGrid_firstPage(listaRigheOdT);
-	//verifico ciclicamente che l'aggiornamneto della tabella sia completato
-	//monitrando il testo della label
-	var timer = setInterval( function() {
-		if(label.html().indexOf(LOADINGTXT)=== -1){
-			clearInterval(timer);
-			teclaNavisionRappo.showTotalHours();
-		}
-	}, 200);
-}
-*/

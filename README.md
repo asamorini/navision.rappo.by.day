@@ -13,6 +13,7 @@ Once activated, reports will appear at each screen
       javascript:jQuery.ajaxSetup(%7Bcache:true%7D);jQuery.getScript('https://asamorini.github.io/navision.rappo/src/js/navision.tot.by.day.js');
       ```
    - EDGE EXCEPTION: 
+      use this code instead
       ```
       javascript:jQuery.getScript('https://asamorini.github.io/navision.rappo/src/js/navision.tot.by.day.js');
       ```

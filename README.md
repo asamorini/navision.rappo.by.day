@@ -12,4 +12,8 @@ Once activated, reports will appear at each screen
       ```
       javascript:jQuery.ajaxSetup(%7Bcache:true%7D);jQuery.getScript('https://asamorini.github.io/navision.rappo/src/js/navision.tot.by.day.js');
       ```
+   - EDGE EXCEPTION: 
+      ```
+      javascript:jQuery.getScript('https://asamorini.github.io/navision.rappo/src/js/navision.tot.by.day.js');
+      ```
 2) When you are visiting https://navisionweb........it/ site, after logging in, you can activate the plugin by running the bookmark

@@ -532,11 +532,25 @@ teclaNavision.rappo=(function($,_window){
 				tableRappo	= table rapportini
 				obj			= JSON object with rapportini retrieved from server
 			*/
+			var hideHeader=function(){
+					var header=$($('#listaRigheOdT_container > div')[0]),
+						rappoList=$('#gview_'+teclaNavision.RAPPO_ID+' .ui-jqgrid-bdiv'),
+						heightRemoved=header.height(),
+						HEADER_ALREADY_HIDDEN_CLASS='teclaNavisionHeaderHidden';
+					if (header.hasClass(HEADER_ALREADY_HIDDEN_CLASS)){return;}
+					header
+					.addClass(HEADER_ALREADY_HIDDEN_CLASS)
+					.hide();
+					rappoList.css('height',rappoList.height()+heightRemoved);
+					$('#btnAvviaRicerca').hide('slow');
+				};
 			if (!obj || !obj.Oggetti){return;}
 			console.log('tableRappoAdjust',obj);
-
+			
 			_R=teclaNavision.rappo;
 			_tableRappo=tableRappo;
+			
+			hideHeader();
 			
 			//there is only one page of rows
 			if ($('#'+teclaNavision.RAPPO_ID+'_btnPrev').is(':disabled')
@@ -631,6 +645,7 @@ teclaNavision.rappo=(function($,_window){
 												+'<th>Fase</th>'
 												+'<th>Ore</th>'
 												+'<th>Straordinario</th>'
+												+'<th>Assenze</th>'
 												+'<th>Note</th>'
 											+'</tr>'
 										);
@@ -642,6 +657,7 @@ teclaNavision.rappo=(function($,_window){
 											'<tr>'
 												+'<td>'+el.day+'</td>'
 												+'<td style="color:red">ERROR</td>'
+												+'<td></td>'
 												+'<td></td>'
 												+'<td></td>'
 												+'<td></td>'
@@ -663,6 +679,7 @@ teclaNavision.rappo=(function($,_window){
 													+'<td style="'+styleBorder+'">'+d[k].Fase+'</td>'
 													+'<td style="'+styleBorder+'text-align: center;">'+d[k].OreOrdinarie+'</td>'
 													+'<td style="'+styleBorder+'text-align: center;">'+d[k].OreStraordinarie+'</td>'
+													+'<td style="'+styleBorder+'text-align: center;">'+d[k].OreAssenze+'</td>'
 													+'<td style="'+styleBorder+'">'+(d[k].Note || '')+'</td>'
 												+'</tr>'
 											);
